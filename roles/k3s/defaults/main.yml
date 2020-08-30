@@ -1,1 +1,12 @@
 etcd_cluster_url: "{% for host in groups.etcd %}https://{{ hostvars[host].ansible_default_ipv4.address }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
+k3s_config:
+  common:
+    # INSTALL_K3S_VERSION:
+    # INSTALL_K3S_CHANNEL: stable
+    K3S_DATASTORE_ENDPOINT: "{{ etcd_cluster_url }}"
+    K3S_DATASTORE_CAFILE: /etc/ssl/etcd/ca.pem
+    K3S_DATASTORE_CERTFILE: /etc/ssl/etcd/client.pem
+    K3S_DATASTORE_KEYFILE: /etc/ssl/etcd/client-key.pem
+  managers: {}
+  workers:
+    K3S_URL: "https://{{ groups['k3s_managers'][0] }}:6443"
