@@ -22,6 +22,7 @@
       loop:
         - /etc/rancher
         - /etc/ssl/etcd
+        - /etc/logrotate.d/k3s
         - /var/lib/rancher
         - /var/lib/etcd
         - /var/log/k3s.log
