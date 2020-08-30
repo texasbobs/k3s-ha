@@ -1,0 +1,20 @@
+# Node Name
+name: "{{ ansible_fqdn }}"
+data-dir: /var/lib/etcd/data
+listen-peer-urls: "https://{{ ansible_default_ipv4.address }}:2380"
+listen-client-urls: "https://{{ ansible_default_ipv4.address }}:2379,https://127.0.0.1:2379"
+advertise-client-urls: "https://{{ ansible_default_ipv4.address }}:2379"
+initial-advertise-peer-urls: "https://{{ ansible_default_ipv4.address }}:2380"
+initial-cluster: "{{ etcd_cluster_url }}"
+initial-cluster-state: {{ etcd_initial_cluster_state }}
+initial-cluster-token: "{{ etcd_cluster_token }}"
+peer-transport-security:
+  trusted-ca-file: /etc/ssl/etcd/ca.pem
+  cert-file: /etc/ssl/etcd/member.pem
+  key-file: /etc/ssl/etcd/member-key.pem
+  client-cert-auth: true
+client-transport-security:
+  trusted-ca-file: /etc/ssl/etcd/ca.pem
+  cert-file: /etc/ssl/etcd/client.pem
+  key-file: /etc/ssl/etcd/client-key.pem
+  client-cert-auth: true

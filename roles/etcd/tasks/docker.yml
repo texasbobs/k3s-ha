@@ -1,0 +1,60 @@
+---
+# docker exec -ti etcd etcdctl --cert-file /etc/ssl/etcd/member.pem --key-file /etc/ssl/etcd/member-key.pem --ca-file /etc/ssl/etcd/ca.pem --endpoints 'https://127.0.0.1:2379' member list
+
+- name: get info about etcd container, if any
+  docker_container_info:
+    name: etcd
+  register: container_result
+
+- name: "check if etcd {{ etcd_data_dir }}/member directory exists"
+  stat:
+    path: "{{ etcd_data_dir }}/member"
+  register: stat_result
+
+- name: set etcd_initial_cluster_state if etcd is NOT already running
+  set_fact:
+    etcd_initial_cluster_state: new
+  when:
+    - not container_result.exists
+    - not container_result.container
+    - not stat_result.stat.exists
+
+- name: determine if etcd is running already
+  set_fact:
+    etcd_initial_cluster_state: existing
+  when:
+    - container_result.exists
+    - container_result.container.State.Running
+    - stat_result.stat.exists
+
+- name: configure etcd docker container
+  docker_container:
+    name: etcd
+    image: quay.io/coreos/etcd:latest
+    restart_policy: always
+    # network_mode: host
+    hostname: "{{ ansible_hostname }}"
+    published_ports:
+      - 2379:2379
+      - 2380:2380
+    volumes:
+      - "{{ etcd_data_dir }}:{{ etcd_data_dir }}"
+      - "{{ etcd_cert_dir }}:{{ etcd_cert_dir }}"
+    env:
+      ETCD_DATA_DIR: "{{ etcd_data_dir }}"
+      ETCD_NAME: "{{ ansible_hostname }}"
+      ETCD_LISTEN_PEER_URLS: "https://0.0.0.0:2380"
+      ETCD_LISTEN_CLIENT_URLS: "https://0.0.0.0:2379"
+      ETCD_ADVERTISE_CLIENT_URLS: "https://{{ ansible_default_ipv4.address }}:2379"
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: "https://{{ ansible_default_ipv4.address }}:2380"
+      ETCD_INITIAL_CLUSTER: "{{ etcd_cluster_url }}"
+      ETCD_INITIAL_CLUSTER_STATE: "{{ etcd_initial_cluster_state }}"
+      ETCD_INITIAL_CLUSTER_TOKEN: "{{ etcd_cluster_token.stdout }}"
+      ETCD_TRUSTED_CA_FILE: /etc/ssl/etcd/ca.pem
+      ETCD_CERT_FILE: /etc/ssl/etcd/client.pem
+      ETCD_KEY_FILE: /etc/ssl/etcd/client-key.pem
+      ETCD_CLIENT_CERT_AUTH: "true"
+      ETCD_PEER_TRUSTED_CA_FILE: /etc/ssl/etcd/ca.pem
+      ETCD_PEER_CERT_FILE: /etc/ssl/etcd/member.pem
+      ETCD_PEER_KEY_FILE: /etc/ssl/etcd/member-key.pem
+      ETCD_PEER_CLIENT_CERT_AUTH: "true"

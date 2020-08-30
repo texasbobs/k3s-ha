@@ -1,0 +1,16 @@
+---
+- name: apk install python & pip
+  raw: apk add --no-cache python3 py3-pip
+  ignore_errors: yes
+
+- name: update apt cache
+  raw: apt-get update
+  ignore_errors: yes
+
+- name: install python
+  raw: apt-get install python3 python3-pip
+  ignore_errors: yes
+
+- name: install setuptools
+  raw: pip3 install setuptools
+  ignore_errors: yes
