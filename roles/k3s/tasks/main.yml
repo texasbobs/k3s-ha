@@ -18,7 +18,7 @@
     --datastore-cafile /etc/ssl/etcd/ca.pem \
     --datastore-certfile /etc/ssl/etcd/client.pem \
     --datastore-keyfile /etc/ssl/etcd/client-key.pem
-  when: etck3s.stat.exists == False
+  when: not etck3s.stat.exists
   delegate_to: "{{ groups['k3s_managers'][0] }}"
   run_once: yes
 
@@ -36,7 +36,7 @@
     --datastore-cafile /etc/ssl/etcd/ca.pem \
     --datastore-certfile /etc/ssl/etcd/client.pem \
     --datastore-keyfile /etc/ssl/etcd/client-key.pem
-  when: inventory_hostname != groups['k3s_managers'][0] and etck3s.stat.exists == False
+  when: inventory_hostname != groups['k3s_managers'][0] and not etck3s.stat.exists
   tags:
     - ha
 
@@ -63,6 +63,6 @@
     --docker \
     --token "{{ k3s_cluster_token.content | b64decode | trim }}" \
     --server https://{{ groups['k3s_managers'][0] }}:6443
-  when: inventory_hostname in groups['k3s_workers'] and etck3s.stat.exists == False
+  when: inventory_hostname in groups['k3s_workers'] and not etck3s.stat.exists
   tags:
     - workers
