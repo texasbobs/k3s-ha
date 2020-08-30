@@ -70,6 +70,6 @@
     - "{{ k3s_config.common }}"
     - "{{ k3s_config.workers }}"
     - K3S_TOKEN: "{{ k3s_cluster_token.content | b64decode | trim }}"
-  when: inventory_hostname in groups['k3s_workers'] #and not etck3s.stat.exists
+  when: inventory_hostname in groups['k3s_workers'] and not etck3s.stat.exists
   tags:
     - workers
