@@ -19,7 +19,7 @@
     - not container_result.container
     - not stat_result.stat.exists
 
-- name: determine if etcd is running already
+- name: set etcd_initial_cluster_state if etcd IS already running
   set_fact:
     etcd_initial_cluster_state: existing
   when:

@@ -1,8 +1,13 @@
 ---
 - name: install apg
-  apk:
+  package:
     name: apg
     state: present
-  become: yes
+    use: "{{ ansible_pkg_mgr }}"
+  delegate_to: localhost
+  run_once: yes
 
-- include_tasks: "packages-{{ etcd_method }}.yml"
+- name: install python docker support
+  pip:
+    name: docker
+    state: latest
