@@ -1,75 +1,117 @@
 ---
 - name: Gather facts
   setup:
-  tags:
-    - ha
-    - workers
+  become: yes
 
 - name: download k3s setup script
   get_url:
     url: https://get.k3s.io
     dest: /tmp/k3s.sh
-    mode: "0755"
-  tags:
-    - ha
-    - managers
-    - workers
+    mode: 0755
 
 - name: check if k3s config directory already exists
   stat:
     path: /etc/rancher/k3s
   register: etck3s
-  tags:
-    - ha
-    - workers
+
+- name: create /etc/rancher/k3s
+  file:
+    path: /etc/rancher/k3s
+    state: directory
+    recurse: yes
+    owner: root
+    group: root
+    mode: 0755
+  become: yes
+  when: not etck3s.stat.exists
+
+- name: generate config file
+  template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: 0644
+  become: yes
+  when: inventory_hostname == groups['k3s_managers'][0] and not etck3s.stat.exists
 
 - name: setup k3s
-  command: |
-    /tmp/k3s.sh \
-    --docker
-  environment:
-    - "{{ k3s_config.common }}"
-    - "{{ k3s_config.managers }}"
-  when: not etck3s.stat.exists
-  delegate_to: "{{ groups['k3s_managers'][0] }}"
+  command: /tmp/k3s.sh --config /etc/rancher/k3s/config.yaml
+  become: yes
+  when: inventory_hostname == groups['k3s_managers'][0] and not etck3s.stat.exists
   run_once: yes
-
-- name: setup k3s (managers)
-  command: |
-    /tmp/k3s.sh \
-    --docker
-  environment:
-    - "{{ k3s_config.common }}"
-    - "{{ k3s_config.managers }}"
-  when: inventory_hostname != groups['k3s_managers'][0] and not etck3s.stat.exists
-  tags:
-    - ha
 
 - name: wait for token file to populate
   wait_for:
     path: /var/lib/rancher/k3s/server/token
-  delegate_to: "{{ groups['k3s_managers'][0] }}"
+  become: yes
+  when: inventory_hostname == groups['k3s_managers'][0]
   run_once: yes
-  tags:
-    - workers
 
 - name: get join token
   slurp:
     src: /var/lib/rancher/k3s/server/token
+  become: yes
   register: k3s_cluster_token
-  delegate_to: "{{ groups['k3s_managers'][0] }}"
+  when: inventory_hostname == groups['k3s_managers'][0]
   run_once: yes
-  tags:
-    - workers
 
-- name: setup k3s (workers)
-  command: |
-    /tmp/k3s.sh \
-    --docker
-  environment:
-    - "{{ k3s_config.common }}"
-    - "{{ k3s_config.workers }}"
-    - K3S_TOKEN: "{{ k3s_cluster_token.content | b64decode | trim }}"
-  when: inventory_hostname in groups['k3s_workers'] and not etck3s.stat.exists
-  tags:
-    - workers
+- name: generate config file
+  template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: 0644
+  become: yes
+  when: not etck3s.stat.exists
+
+- name: fetch kubeconfig
+  fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "/tmp/{{ inventory_hostname }}-config.yml"
+    flat: yes
+    mode: 0600
+  become: yes
+  when: inventory_hostname == groups['k3s_managers'][0]
+
+- name: patch host in kubeconfig
+  lineinfile:
+    path: "/tmp/{{ inventory_hostname }}-config.yml"
+    regexp: "^    server: https://127.0.0.1:6443$"
+    line: "    server: https://{{ inventory_hostname }}:6443"
+    state: present
+  when: inventory_hostname == groups['k3s_managers'][0]
+  delegate_to: localhost
+
+- name: get nodes
+  k8s_info:
+    api_version: v1
+    kind: Node
+    kubeconfig: "/tmp/{{ inventory_hostname }}-config.yml"
+  register: nodes
+  when: inventory_hostname == groups['k3s_managers'][0]
+  delegate_to: localhost
+  retries: 20
+  delay: 3
+  until: nodes.resources | json_query(query_nodes) | selectattr('ready', 'equalto', 'False') | length == 0
+
+- name: setup k3s (managers)
+  command: /tmp/k3s.sh --config /etc/rancher/k3s/config.yaml
+  become: yes
+  throttle: 1
+  when: inventory_hostname != groups['k3s_managers'][0] and not etck3s.stat.exists
+
+- name: get nodes
+  k8s_info:
+    api_version: v1
+    kind: Node
+    kubeconfig: "/tmp/{{ inventory_hostname }}-config.yml"
+  register: nodes
+  when: inventory_hostname == groups['k3s_managers'][0]
+  delegate_to: localhost
+  retries: 20
+  delay: 3
+  until: >
+    nodes.resources | json_query(query_nodes) | selectattr('ready', 'equalto', 'False') | length == 0
+    and nodes.resources | json_query(query_nodes) | length == groups['k3s_managers'] | length

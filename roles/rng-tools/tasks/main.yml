@@ -1,11 +1,11 @@
 ---
 - name: install rng-tools
-  apk:
+  package:
     name: rng-tools
     state: present
 
 - name: start & enable rng-tools service
   service:
-    name: rngd
+    name: rng-tools
     state: started
     enabled: yes

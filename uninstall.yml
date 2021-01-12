@@ -9,9 +9,8 @@
       command: /usr/local/bin/k3s-uninstall.sh
       ignore_errors: yes
 
-    # far more reliable than the docker_host_info/docker_containers method:
-    - name: stop/rm all containers
-      shell: docker stop $(docker ps -q); docker rm $(docker ps -qa);
+    - name: uninstall k3s-agent
+      command: /usr/local/bin/k3s-agent-uninstall.sh
       ignore_errors: yes
 
     # slower than command, but more appropriate for ansible:
@@ -21,26 +20,15 @@
         state: absent
       loop:
         - /etc/rancher
-        - /etc/ssl/etcd
-        - /etc/logrotate.d/k3s
         - /var/lib/rancher
-        - /var/lib/etcd
-        - /var/log/k3s.log
         - /var/log/pods
         - /var/log/containers
 
-    # tends to leave orphaned containers:
-    # - name: get all container info
-    #   docker_host_info:
-    #     containers: yes
-    #     networks: no
-    #     images: no
-    #     disk_usage: no
-    #     volumes: no
-    #   register: containers
+    - command: journalctl --rotate
+      when: clean_journalctl | bool
+    - command: journalctl --vacuum-time=1s
+      when: clean_journalctl | bool
+    - command: journalctl --vacuum-time=0s
+      when: clean_journalctl | bool
 
-    # - name: remove all running containers
-    #   docker_container:
-    #     name: "{{ item.Names[0] | regex_replace('^/', '') }}"
-    #     state: absent
-    #   loop: "{{ containers.containers }}"
+    - reboot:

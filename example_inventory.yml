@@ -20,10 +20,3 @@ prod:
       children:
         k3s_managers:
         k3s_workers:
-
-    # etcd nodes are also k3s manager nodes
-    # or, another way to say that is:
-    # k3s manager nodes are also etcd nodes
-    etcd:
-      children:
-        k3s_managers:

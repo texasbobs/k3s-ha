@@ -1,0 +1,8 @@
+---
+{% if inventory_hostname == groups['k3s_managers'][0] %}
+cluster-init: true
+{% else %}
+server: "https://{{ groups['k3s_managers'][0] }}:6443"
+{% if k3s_cluster_token is defined %}token: "{{ k3s_cluster_token.content | b64decode | trim }}"
+{% endif %}
+{% endif %}

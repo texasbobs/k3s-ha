@@ -1,0 +1,11 @@
+---
+- hosts : k3s
+  gather_facts: no
+  roles :
+    - { role: python-minimal }
+
+- hosts : k3s
+  gather_facts: yes
+  roles :
+    - { role: rng-tools }
+    - { role: k3s }
