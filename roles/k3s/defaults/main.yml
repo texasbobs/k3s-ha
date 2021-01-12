@@ -1,4 +1,3 @@
-# etcd_cluster_url: "{% for host in groups.etcd %}https://{{ hostvars[host].ansible_default_ipv4.address }}:2379{% if not loop.last %},{% endif %}{% endfor %}"
 query_nodes: "[].{name: metadata.name, ready: status.conditions[?type == 'Ready'].status | [0], labels: metadata.labels, master: metadata.labels.\"node-role.kubernetes.io/master\"}"
 k3s_config:
   common:
