@@ -9,7 +9,7 @@
   ignore_errors: yes
   become: yes
 
-- name: install wheel & setuptools
-  raw: pip3 install wheel setuptools
-  ignore_errors: yes
+- name: install wheel,setuptools, and openshift
+  raw: pip3 install wheel setuptools openshift
+  ignore_errors: no
   become: yes

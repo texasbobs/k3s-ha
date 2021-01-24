@@ -91,10 +91,13 @@
     kubeconfig: "/tmp/{{ inventory_hostname }}-config.yml"
   register: nodes
   when: inventory_hostname == groups['k3s_managers'][0]
-  delegate_to: localhost
+  become: yes
   retries: 20
   delay: 3
   until: nodes.resources | json_query(query_nodes) | selectattr('ready', 'equalto', 'False') | length == 0
+
+- debug:
+    var: nodes
 
 - name: setup k3s (managers)
   command: /tmp/k3s.sh --config /etc/rancher/k3s/config.yaml
@@ -109,9 +112,10 @@
     kubeconfig: "/tmp/{{ inventory_hostname }}-config.yml"
   register: nodes
   when: inventory_hostname == groups['k3s_managers'][0]
-  delegate_to: localhost
-  retries: 20
-  delay: 3
+  become: yes
   until: >
     nodes.resources | json_query(query_nodes) | selectattr('ready', 'equalto', 'False') | length == 0
-    and nodes.resources | json_query(query_nodes) | length == groups['k3s_managers'] | length
+    and nodes.resources | json_query(query_nodes) | length == groups['k3s_managers'] | length  
+
+- debug:
+    var: nodes
