@@ -3,6 +3,7 @@
   package:
     name: rng-tools
     state: present
+  become: yes
 
 - name: start & enable rng-tools service
   service:
