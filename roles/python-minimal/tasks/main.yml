@@ -1,15 +1,20 @@
 ---
-- name: update apt cache
-  raw: apt-get update
-  ignore_errors: yes
+- name: Update apt cache
+  apt:
+    update_cache: yes
   become: yes
 
-- name: install python
-  raw: apt-get -yqq install python3 python3-pip
-  ignore_errors: yes
+- name: Install Python
+  apt:
+    pkg: 
+    - python3
+    - python3-pip
   become: yes
 
-- name: install wheel,setuptools, and openshift
-  raw: pip3 install wheel setuptools openshift
-  ignore_errors: no
-  become: yes
+- name: Pip Install wheel, setuptools, and openshift
+  pip: 
+    name: 
+    - setuptools
+    - wheel
+    - openshift
+  become: yes 
